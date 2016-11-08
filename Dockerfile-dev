@@ -1,0 +1,27 @@
+# Dockerfile
+FROM ruby:2.3
+MAINTAINER Austin Covrig "austinc@iiw.org"
+
+# baseimage-docker's init
+CMD ["supervisord"]
+
+# Expose nginx HTTP
+EXPOSE 3000
+
+# Install stuff
+#   graphviz - for dot and what not
+#   redis (redis-server, libhiredis-dev) - DB for sidekiq
+#   supervisor - init, this allows sidekiq, redis, and rails to run nicely
+RUN apt-get update && apt-get install -y graphviz redis-server libhiredis-dev supervisor
+
+# Add config
+ADD redis.conf /etc/redis/redis.conf
+ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Add the app itself
+WORKDIR /myapp
+ADD . /myapp
+RUN bundle install
+
+# Clean up when done
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

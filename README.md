@@ -26,53 +26,44 @@ If you are interested in the old version, see the [1.0 branch](https://github.co
 
 ## Local Installation
 
-1. While not strictly required, it is recommended to install [`rbenv`](https://github.com/sstephenson/rbenv) and [`ruby-build`](https://github.com/sstephenson/ruby-build) to manage ruby versions in development. Ruby 2.2 or greater is required.
+1. Move .env.example to .env and edit as needed
 
-2. Required dependencies
+2. Databse
 
-    - Ruby 2.2 or greater
-    - Postgres
-    - Redis
-
-3. After installing the aforementioned dependencies, install the ruby dependencies:
+    Note: 'secure_password_here' should match SOUTHWEST_CHECKIN_DATABASE_PASSWORD from .env
 
     ```shell
-    bundle install
+    db=$(docker run -itd postgres)
+    docker exec -it $db psql -Upostgres -c "CREATE ROLE southwest_checkin WITH LOGIN CREATEDB PASSWORD 'secure_password_here';"
+    ```
+
+3. APP
+
+    - build
+    ```shell
+    docker build -t $(whoami)/southwest -f Dockerfile-dev .
+    ```
+    - run
+    ```shell
+    app=$(docker run -itd --name southwest --link $db:postgres -p 3000:3000/tcp $(whoami)/southwest)
     ```
 
 4. Create and seed the database:
 
     ```shell
-    rake db:create db:migrate db:seed
+    docker exec -it $app bash -c 'rake db:create db:migrate db:seed && rake db:migrate db:seed RAILS_ENV=test'
     ```
 
 5. Adding some basic test data for development:
 
     ```shell
-    rake dev:prime
+    docker exec -it $app bash -c 'rake dev:prime'
     ```
 
-6. Copy `.env.example` to `.env`. The defaults should work in development.
+6. Run the tests:
 
     ```shell
-    cp .env.example .env
-    ```
-7. Run the tests:
-
-    ```shell
-    rspec
-    ```
-
-8. Run the development server:
-
-    ```
-    rails s
-    ```
-
-9. Run sidekiq to process jobs:
-
-    ```
-    bundle exec sidekiq
+    docker exec -it $app bash -c 'rspec'
     ```
 
 ## Contributing
